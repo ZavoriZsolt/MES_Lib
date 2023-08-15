@@ -1,0 +1,99 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_GET_Base" Id="{1bad6de4-c5c9-4b30-991b-e8e56c4f61a4}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_GET_Base
+VAR_INPUT
+	bSend				: BOOL;
+	sUri				: STRING;
+END_VAR
+VAR_IN_OUT
+	stFields			: ARRAY [*] OF ST_Field;
+END_VAR
+VAR_OUTPUT
+	bBusy				: BOOL;
+	bError				: BOOL;
+END_VAR
+VAR
+	fbClient			: FB_IotHttpClient;
+	fbRequest			: FB_IotHttpRequest;
+	fbHeader			: FB_IotHttpHeaderFieldMap;
+	fbJson				: FB_JsonDomParser;
+	nState				: UDINT;
+	RisingEdge			: R_TRIG;
+	
+	bGetContentResult	: BOOL;
+	sContent			: STRING(2000);
+	
+	bGetJsonResult		: BOOL;
+	sResult				: STRING(2000);
+	
+	nReqCount			: UDINT;	
+	nResCount			: UDINT;
+	nValidResCount		: UDINT;
+	nErrCount			: UDINT;
+	bOnce				: BOOL:= TRUE;
+	i					: DINT;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF bOnce THEN
+	FOR i := LOWER_BOUND(stFields,1) TO UPPER_BOUND(stFields,1) DO
+		fbHeader.AddField(stFields[i].FieldName,stFields[i].FieldValue,FALSE);
+	END_FOR	
+	bOnce:= FALSE;
+END_IF
+
+IF NOT fbClient.bConfigured THEN
+ 	fbClient.sHostName := ComPar.HostName;
+	fbClient.nHostPort:= ComPar.HostPort;
+	fbClient.bKeepAlive := TRUE;
+	fbClient.tConnectionTimeout := T#10s;
+END_IF
+
+fbClient.Execute();]]></ST>
+    </Implementation>
+    <Method Name="GET" Id="{7221d02f-e723-4adf-84e1-f253c798cb8e}">
+      <Declaration><![CDATA[METHOD GET : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[RisingEdge(CLK:= bSend );
+CASE nState OF
+0:	
+	IF RisingEdge.Q THEN 
+		IF fbRequest.SendRequest(sUri:= sUri, fbClient:=fbClient, eRequestType:=ETcIotHttpRequestType.HTTP_Get, 0, 0, fbHeader) THEN				
+			nState:= 1;
+			nReqCount:= nReqCount+1;
+			bBusy:= TRUE;
+			bError:= FALSE;
+		END_IF					
+	END_IF
+1:
+	IF NOT fbRequest.bBusy THEN
+		bError:= TRUE;
+		IF NOT fbRequest.bError THEN				 
+			bGetContentResult:= fbRequest.GetContent(pContent:= ADR(sContent), nContentSize:= SIZEOF(sContent), bSetNullTermination:= TRUE);
+			IF fbRequest.nStatusCode >= 200 AND fbRequest.nStatusCode < 300 THEN
+				bGetJsonResult:= FALSE;
+				IF fbRequest.GetJsonDomContent(fbJson) <> 0 THEN
+					bGetJsonResult:= TRUE;
+					nValidResCount:= nValidResCount+1;
+					UTF8_TO_STRING(ADR(sResult),ADR(sContent),SIZEOF(sResult));
+					bError:= FALSE;															
+				END_IF							
+				nResCount:= nResCount+1;			
+			END_IF
+		END_IF
+		nState:= 0;
+		GET := TRUE;
+		bBusy:= FALSE;
+		IF bError THEN
+			nErrCount:= nErrCount+1;
+		END_IF
+	END_IF
+
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

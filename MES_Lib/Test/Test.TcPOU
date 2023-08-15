@@ -1,0 +1,55 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="Test" Id="{c2d4ff5f-ee61-4a8c-ad3c-c16d906d533d}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Test
+VAR
+	fbSR1000						:FB_TCP_IP;
+	sCode							:STRING;
+	nErrorId						:UDINT;
+	bTrigger						:BOOL;
+
+	fbCloseAll						:FB_SocketCloseAll;
+	bInitTCPIP						:BOOL;
+	bInit							:BOOL := TRUE;
+	
+	stFields						: ARRAY [0..1] OF ST_Field := [ (FieldName := 'x-api-key', FieldValue := '5308cb47-0343-498d-a4d9-dac5c6a15f1e'), 
+																	(FieldName := 'x-terminal-token', FieldValue := 'logistic')];
+	fbNextPhase						: FB_NextPhase;
+											
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF bInit THEN
+	Init();
+END_IF
+
+
+fbCloseAll( sSrvNetID := '', bExecute:= bInitTCPIP );
+IF NOT fbCloseAll.bBusy AND bInitTCPIP THEN
+	bInitTCPIP := FALSE;
+END_IF
+
+
+
+IF bTrigger THEN
+	IF fbSR1000.ReadSR1000(sCode, nErrorId) THEN
+		bTrigger := FALSE;
+	END_IF
+END_IF
+
+fbNextPhase(stFields := stFields);
+fbNextPhase.GET();
+]]></ST>
+    </Implementation>
+    <Action Name="Init" Id="{b7bbfda9-bb1e-472c-b733-d16b829f74df}">
+      <Implementation>
+        <ST><![CDATA[	fbSR1000.p_ConnectTimeout := T#2S;
+	fbSR1000.p_SendTimeout := T#2S;
+	fbSR1000.p_ReceiveTimeout := T#2S;
+	fbSR1000.p_CloseTimeout := T#2S;
+	fbSR1000(sName:= 'SR1000', sRemoteHost:= '192.168.216.96', nRemotePort:= 9004);
+	bInit := FALSE;]]></ST>
+      </Implementation>
+    </Action>
+  </POU>
+</TcPlcObject>

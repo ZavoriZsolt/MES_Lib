@@ -1,0 +1,84 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="FB_NextPhase" Id="{99c58cdf-85ae-4a4f-8b2d-362fa9d811e4}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_NextPhase
+VAR_INPUT
+	bSend							: BOOL;
+	sSerialNr						: STRING;
+END_VAR
+VAR_IN_OUT
+	stFields						: ARRAY [*] OF ST_Field;
+END_VAR
+VAR_OUTPUT
+	bBusy							: BOOL;
+	bError							: BOOL;
+	sNextPhase						: STRING;
+END_VAR
+VAR
+	fbJson     						: FB_JsonDomParser;
+	jsonDoc							: SJsonValue;
+	jsonBegin						: SJsonValue;
+	jsonElement						: SJsonValue;
+	jsonValue						: SJsonValue;
+	fbGetWorkpieceData				: FB_GET_Base;
+	nWorkPieceId					: ULINT;
+	fbGetNextPhase					: FB_GET_Base;
+	nState							: UDINT;
+	RisingEdge						: R_TRIG;
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[fbGetWorkpieceData(sUri:= CONCAT('/api/workpieces/?serialNumber=', sSerialNr), stFields := stFields);
+fbGetWorkpieceData.GET();
+
+fbGetNextPhase(sUri:= CONCAT(CONCAT('/api/workpieces/', ULINT_TO_STRING(nWorkPieceId)), '/next-phases-resources'), stFields := stFields);
+fbGetNextPhase.GET();
+
+]]></ST>
+    </Implementation>
+    <Method Name="GET" Id="{5123b579-ee1e-47cc-86a0-9273f66eee00}">
+      <Declaration><![CDATA[METHOD GET : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[RisingEdge(CLK:= bSend );
+CASE nState OF
+0:	
+	IF RisingEdge.Q THEN
+		fbGetWorkpieceData.bSend := TRUE; 						
+		nState := nState +20;
+		bBusy:= TRUE;
+		bError:= FALSE;
+	END_IF
+	
+20:
+	IF NOT fbGetWorkpieceData.bBusy THEN
+		fbGetWorkpieceData.bSend := FALSE;
+		jsonDoc := fbJson.ParseDocument(fbGetWorkpieceData.sResult);
+		jsonElement := fbJson.GetArrayValueByIdx(jsonDoc, 0);
+		jsonValue := fbJson.FindMember(jsonElement, 'id');
+		nWorkPieceId := LINT_TO_ULINT(fbJson.GetInt64(jsonValue));
+		nState := nState +20; 
+	END_IF
+	
+40:	
+	fbGetNextPhase.bSend := TRUE;
+	nState := nState +20;
+	
+60:
+	IF NOT fbGetNextPhase.bBusy THEN
+		fbGetNextPhase.bSend := FALSE;
+		jsonDoc := fbJson.ParseDocument(fbGetNextPhase.sResult);
+		jsonElement := fbJson.FindMember(jsonDoc, 'phase');
+		jsonValue := fbJson.FindMember(jsonElement, 'name');
+		sNextPhase := fbJson.GetString(jsonValue);
+		nState := 0;
+		bBusy:= FALSE;
+	END_IF
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

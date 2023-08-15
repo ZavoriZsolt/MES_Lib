@@ -1,0 +1,401 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="FB_TCP_IP" Id="{c1992312-48d2-4717-b75b-dedc24e610ec}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_TCP_IP
+VAR_INPUT
+	sName				: STRING := 'SR1000';			(* A kódolvasó neve *)
+	sRemoteHost			: STRING(15) := '127.0.0.1';	(* IP adress of remote server *)
+	nRemotePort			: UDINT := 9004;				(* SR1000 default port *)
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	fbConnect 			:FB_SocketConnect;
+	fbSend 				:FB_SocketSend;
+	fbReceive 			:FB_SocketReceive;
+	fbClose				:FB_SocketClose;
+	sTxBuffer			:STRING;
+	sRxBuffer			:STRING;
+	nStep				:INT := 0;
+	
+	_ConnectTimeout		:TIME;
+	_SendTimeout		:TIME;
+	_ReceiveTimeout		:TIME;
+	_CloseTimeout		:TIME;
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(*
+fbConnect(
+	sSrvNetId:= '', 
+	sRemoteHost:= sRemoteHost, 
+	nRemotePort:= nRemotePort, 
+	bExecute:= , 
+	tTimeout:= _ConnectTimeout, 
+	bBusy=> , 
+	bError=> , 
+	nErrId=> , 
+	hSocket=> );
+	
+fbSend(
+	sSrvNetId:= '', 
+	hSocket:= fbConnect.hSocket, 
+	cbLen:= INT_TO_UDINT(LEN(sTxBuffer)), 
+	pSrc:= ADR(sTxBuffer), 
+	bExecute:= , 
+	tTimeout:= _SendTimeout, 
+	bBusy=> , 
+	bError=> , 
+	nErrId=> );
+
+fbReceive(
+	sSrvNetId:= '', 
+	hSocket:= fbConnect.hSocket, 
+	cbLen:= SIZEOF(sRxBuffer), 
+	pDest:= ADR(sRxBuffer), 
+	bExecute:= , 
+	tTimeout:= _ReceiveTimeout, 
+	bBusy=> , 
+	bError=> , 
+	nErrId=> , 
+	nRecBytes=> );
+
+fbClose(
+	sSrvNetId:= '', 
+	hSocket:= fbConnect.hSocket, 
+	bExecute:= , 
+	tTimeout:= , 
+	bBusy=> , 
+	bError=> , 
+	nErrId=> );	
+	
+*)]]></ST>
+    </Implementation>
+    <Property Name="p_CloseTimeout" Id="{33efcc88-4d1f-4a0d-a66f-024f934a305e}">
+      <Declaration><![CDATA[PROPERTY p_CloseTimeout :  TIME]]></Declaration>
+      <Get Name="Get" Id="{4966c05f-1d94-411b-965b-58a684b4f3ab}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[p_CloseTimeout := _CloseTimeout;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{292f1ddb-7331-4589-985f-101eb2259b4c}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[IF p_CloseTimeout > T#100MS AND p_CloseTimeout <  T#60S THEN
+	_CloseTimeout := p_CloseTimeout;
+ELSE
+	_CloseTimeout := T#1S;					// default value
+END_IF]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="p_ConnectTimeout" Id="{68ecfdb7-b451-4f54-8bd2-8444a4217bd6}">
+      <Declaration><![CDATA[PROPERTY p_ConnectTimeout : TIME]]></Declaration>
+      <Get Name="Get" Id="{eb607fda-6909-4f86-92d4-ac9010a2d0cf}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[p_ConnectTimeout := _ConnectTimeout;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{0e6be276-9ba1-473f-b24d-bec570ef9f1a}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[IF p_ConnectTimeout > T#100MS AND p_ConnectTimeout <  T#60S THEN
+	_ConnectTimeout := p_ConnectTimeout;
+ELSE
+	_ConnectTimeout := T#1S;					// default value
+END_IF]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="p_ReceiveTimeout" Id="{6404b7be-21a9-4f82-afde-9c4caf99ac5c}">
+      <Declaration><![CDATA[PROPERTY p_ReceiveTimeout : TIME]]></Declaration>
+      <Get Name="Get" Id="{5f6211ca-a6c7-4229-be2c-432fd78345cb}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[p_ReceiveTimeout := _ReceiveTimeout;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{2f7f67d5-dfa2-441c-ad3b-be678a1a0e96}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[IF p_ReceiveTimeout > T#100MS AND p_ReceiveTimeout <  T#60S THEN
+	_ReceiveTimeout := p_ReceiveTimeout;
+ELSE
+	_ReceiveTimeout := T#1S;					// default value
+END_IF]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="p_SendTimeout" Id="{40941df4-96e4-4d20-b218-a904a47fa97c}">
+      <Declaration><![CDATA[PROPERTY p_SendTimeout : TIME]]></Declaration>
+      <Get Name="Get" Id="{8de5fe80-9f61-48cc-9420-8ad10714abdc}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[p_SendTimeout := _SendTimeout;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{f9fe7f6a-b01b-4c3c-ba2e-87be848c6417}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[IF p_SendTimeout > T#100MS AND p_SendTimeout <  T#60S THEN
+	_SendTimeout := p_SendTimeout;
+ELSE
+	_SendTimeout := T#1S;					// default value
+END_IF]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Method Name="ReadSR1000" Id="{7d109c9e-4119-4422-a584-cc1ea3132383}">
+      <Declaration><![CDATA[METHOD ReadSR1000 : BOOL
+VAR_INPUT
+	sCode						:REFERENCE TO STRING;
+	nErrorId					:REFERENCE TO UDINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TCP_Com();
+ReadSR1000 := FALSE;
+CASE nStep OF
+0:		fbConnect.bExecute := TRUE;
+		sRxBuffer := '';
+		nStep := nStep + 20;
+	
+20:		IF NOT fbConnect.bBusy THEN
+			fbConnect.bExecute := FALSE;
+			nStep := nStep + 20;
+		ELSIF fbConnect.bError THEN
+			sCode := '';
+			nErrorId := fbConnect.nErrId;
+			fbConnect.bExecute := FALSE;
+			nStep := 200;
+		END_IF
+	
+40:		sTxBuffer := 'LON$R$N';
+		fbSend.bExecute := TRUE;
+		nStep := nStep + 20;
+	
+60:		IF NOT fbSend.bBusy THEN
+			fbSend.bExecute := FALSE;
+			nStep := 100;
+		ELSIF fbSend.bError THEN
+			sCode := '';
+			nErrorId := fbSend.nErrId;
+			fbSend.bExecute := FALSE;
+			nStep := 200;
+		END_IF
+	
+100:	fbReceive.bExecute := TRUE;
+		nStep := nStep + 20;
+	
+120:	IF NOT fbReceive.bBusy THEN
+			IF NOT fbReceive.bError THEN
+					fbReceive.bExecute := FALSE;
+					nStep := nStep + 20;
+			ELSE
+					sCode := '';
+					nErrorId := fbReceive.nErrId;
+					fbReceive.bExecute := FALSE;
+					nStep := 200;
+			END_IF
+		END_IF
+
+140:	IF fbReceive.nRecBytes > 0 THEN
+				IF MID(sRxBuffer, 1, UDINT_TO_INT(fbReceive.nRecBytes)) = '$0D' THEN
+					nErrorId := fbReceive.nErrId;
+					sCode := LEFT(sRxBuffer, UDINT_TO_INT(fbReceive.nRecBytes)-1);
+					nStep := 200;
+				ELSE				
+					nStep := 100;
+				END_IF
+		ELSE
+				nStep := 100;
+		END_IF
+		
+200:	fbClose.bExecute := TRUE;
+		nStep := nStep + 20;
+	
+220:	IF NOT fbClose.bBusy THEN
+			fbClose.bExecute := FALSE;
+			nStep := 500;
+		ELSIF fbClose.bError THEN
+			sCode := '';
+			nErrorId := fbClose.nErrId;
+			fbClose.bExecute := FALSE;
+			nStep := 500;
+		END_IF
+
+500:
+		ReadSR1000 := TRUE;
+		nStep := 0;
+END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="TCP_Com" Id="{6fb11f8f-d5c4-409d-9054-2d5f0d95f976}">
+      <Declaration><![CDATA[METHOD PRIVATE TCP_Com : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[fbConnect(
+	sSrvNetId:= '', 
+	sRemoteHost:= sRemoteHost, 
+	nRemotePort:= nRemotePort, 
+	bExecute:= , 
+	tTimeout:= _ConnectTimeout, 
+	bBusy=> , 
+	bError=> , 
+	nErrId=> , 
+	hSocket=> );
+	
+fbSend(
+	sSrvNetId:= '', 
+	hSocket:= fbConnect.hSocket, 
+	cbLen:= INT_TO_UDINT(LEN(sTxBuffer)), 
+	pSrc:= ADR(sTxBuffer), 
+	bExecute:= , 
+	tTimeout:= _SendTimeout, 
+	bBusy=> , 
+	bError=> , 
+	nErrId=> );
+
+fbReceive(
+	sSrvNetId:= '', 
+	hSocket:= fbConnect.hSocket, 
+	cbLen:= SIZEOF(sRxBuffer), 
+	pDest:= ADR(sRxBuffer), 
+	bExecute:= , 
+	tTimeout:= _ReceiveTimeout, 
+	bBusy=> , 
+	bError=> , 
+	nErrId=> , 
+	nRecBytes=> );
+
+fbClose(
+	sSrvNetId:= '', 
+	hSocket:= fbConnect.hSocket, 
+	bExecute:= , 
+	tTimeout:= , 
+	bBusy=> , 
+	bError=> , 
+	nErrId=> );	
+	]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_TCP_IP">
+      <LineId Id="94" Count="0" />
+      <LineId Id="25" Count="8" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="41" Count="8" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="51" Count="10" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="63" Count="7" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="36" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_TCP_IP.p_CloseTimeout.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TCP_IP.p_CloseTimeout.Set">
+      <LineId Id="2" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="1" />
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TCP_IP.p_ConnectTimeout.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TCP_IP.p_ConnectTimeout.Set">
+      <LineId Id="2" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="1" />
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TCP_IP.p_ReceiveTimeout.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TCP_IP.p_ReceiveTimeout.Set">
+      <LineId Id="2" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="1" />
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TCP_IP.p_SendTimeout.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TCP_IP.p_SendTimeout.Set">
+      <LineId Id="2" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="1" />
+      <LineId Id="6" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TCP_IP.ReadSR1000">
+      <LineId Id="117" Count="0" />
+      <LineId Id="82" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="105" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="39" Count="1" />
+      <LineId Id="110" Count="0" />
+      <LineId Id="41" Count="15" />
+      <LineId Id="111" Count="0" />
+      <LineId Id="57" Count="6" />
+      <LineId Id="112" Count="0" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="93" Count="0" />
+      <LineId Id="87" Count="0" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="102" Count="1" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="66" Count="11" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="81" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="10" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_TCP_IP.TCP_Com">
+      <LineId Id="6" Count="41" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <GVL Name="ComPar" Id="{bea6a59f-890b-47b3-9b04-e7630533b832}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+VAR_GLOBAL
+	HostName				: STRING := '192.168.216.149';
+	HostPort				: UINT := 19000;
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

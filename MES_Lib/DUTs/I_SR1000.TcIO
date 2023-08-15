@@ -1,0 +1,7 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <Itf Name="I_SR1000" Id="{db3901d9-9665-4496-bd15-9552792e4770}">
+    <Declaration><![CDATA[INTERFACE I_SR1000
+]]></Declaration>
+  </Itf>
+</TcPlcObject>
